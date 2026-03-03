@@ -38,10 +38,9 @@
   .drought-map-label .dot.lastyear{background:var(--muted);}
   .drought-map-label span{font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--text);}
   .drought-map-label small{font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--muted);margin-left:auto;}
-  .drought-map-img-wrap{position:relative;background:var(--surface);min-height:180px;display:flex;align-items:center;justify-content:center;}
-  .drought-map-img-wrap img{width:100%;height:auto;display:block;opacity:0;transition:opacity 0.4s;}
-  .drought-map-img-wrap img.loaded{opacity:1;}
-  .drought-map-img-wrap .img-loading{position:absolute;font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted);}
+  .drought-map-img-wrap{position:relative;background:var(--surface);height:260px;}
+  .drought-map-img-wrap iframe{width:100%;height:100%;border:none;display:block;}
+  .drought-map-img-wrap .img-loading{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted);pointer-events:none;}
   .drought-legend{margin-top:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
   .drought-legend-item{display:flex;align-items:center;gap:5px;font-size:0.62rem;color:var(--muted);font-family:'DM Mono',monospace;}
   .drought-legend-swatch{width:14px;height:10px;border-radius:2px;border:1px solid rgba(255,255,255,0.1);}
@@ -149,9 +148,9 @@
       </div>
       <div class="drought-map-img-wrap">
         <div class="img-loading" id="currentImgLoading">Loading map...</div>
-        <img id="droughtCurrent" src="" alt="Current US Drought Monitor Map"
-          onload="this.classList.add('loaded');document.getElementById('currentImgLoading').style.display='none';"
-          onerror="handleDroughtError('current')">
+        <iframe id="droughtCurrent" src="" title="Current US Drought Monitor Map"
+          onload="document.getElementById('currentImgLoading').style.display='none';"
+          onerror="handleDroughtError('current')"></iframe>
       </div>
     </div>
     <div class="drought-map-card">
@@ -162,9 +161,9 @@
       </div>
       <div class="drought-map-img-wrap">
         <div class="img-loading" id="lastYearImgLoading">Loading map...</div>
-        <img id="droughtLastYear" src="" alt="Last Year US Drought Monitor Map"
-          onload="this.classList.add('loaded');document.getElementById('lastYearImgLoading').style.display='none';"
-          onerror="handleDroughtError('lastyear')">
+        <iframe id="droughtLastYear" src="" title="Last Year US Drought Monitor Map"
+          onload="document.getElementById('lastYearImgLoading').style.display='none';"
+          onerror="handleDroughtError('lastyear')"></iframe>
       </div>
     </div>
   </div>
@@ -246,9 +245,11 @@ function initDroughtMaps() {
   const currentStr = formatDroughtDate(currentThu);
   const lastYearStr = formatDroughtDate(lastYearAdj);
 
-  const baseUrl = 'https://droughtmonitor.unl.edu/data/png';
-  document.getElementById('droughtCurrent').src = `${baseUrl}/${currentStr}/${currentStr}_usdm.png`;
-  document.getElementById('droughtLastYear').src = `${baseUrl}/${lastYearStr}/${lastYearStr}_usdm.png`;
+  // Use USDM's official embeddable viewer (avoids CORS issues with direct image loading)
+  // Format: https://droughtmonitor.unl.edu/Maps/MapArchive.aspx?date=YYYYMMDD
+  const viewerBase = 'https://droughtmonitor.unl.edu/Maps/MapArchive.aspx';
+  document.getElementById('droughtCurrent').src = `${viewerBase}?date=${currentStr}`;
+  document.getElementById('droughtLastYear').src = `${viewerBase}?date=${lastYearStr}`;
 
   document.getElementById('currentDroughtDate').textContent = friendlyDate(currentThu);
   document.getElementById('lastYearDroughtDate').textContent = friendlyDate(lastYearAdj);
@@ -257,13 +258,10 @@ function initDroughtMaps() {
 }
 
 function handleDroughtError(which) {
-  if (which === 'current') {
-    document.getElementById('currentImgLoading').textContent = '⚠ Map unavailable — visit drought.gov';
-    document.getElementById('droughtCurrent').style.display = 'none';
-  } else {
-    document.getElementById('lastYearImgLoading').textContent = '⚠ Map unavailable — visit drought.gov';
-    document.getElementById('droughtLastYear').style.display = 'none';
-  }
+  const loadingId = which === 'current' ? 'currentImgLoading' : 'lastYearImgLoading';
+  const frameId   = which === 'current' ? 'droughtCurrent'    : 'droughtLastYear';
+  document.getElementById(loadingId).textContent = '⚠ Map unavailable — visit drought.gov';
+  document.getElementById(frameId).style.display = 'none';
 }
 
 // ── HELPERS ──

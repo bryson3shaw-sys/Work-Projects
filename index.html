@@ -6,414 +6,282 @@
 <title>Field Rain Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Playfair+Display:wght@700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg:#0e1117; --surface:#161b25; --card:#1c2333; --border:#2a3348;
-    --accent:#4fc3f7; --accent2:#81d4a0; --text:#e8edf5; --muted:#6b7a99;
-    --ahead:#81d4a0; --behind:#ff7043; --pace:rgba(255,183,77,0.9);
-  }
-  *{box-sizing:border-box;margin:0;padding:0;}
-  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-weight:300;min-height:100vh;}
-  body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 50% at 20% 0%,rgba(79,195,247,0.07) 0%,transparent 60%),radial-gradient(ellipse 60% 40% at 80% 100%,rgba(129,212,160,0.05) 0%,transparent 60%);pointer-events:none;z-index:0;}
-
-  /* ─── HEADER ─── */
-  header{position:relative;z-index:1;padding:28px 24px 18px;border-bottom:1px solid var(--border);display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px;max-width:1400px;margin:0 auto;}
-  .header-left h1{font-family:'Playfair Display',serif;font-size:clamp(1.5rem,4vw,2.2rem);font-weight:700;letter-spacing:-0.02em;line-height:1;background:linear-gradient(135deg,var(--text) 0%,var(--accent) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-  .header-left p{margin-top:5px;font-size:0.72rem;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.05em;}
-  .header-right{text-align:right;}
-  .refresh-btn{background:var(--card);border:1px solid var(--border);color:var(--accent);font-family:'DM Mono',monospace;font-size:0.75rem;padding:8px 16px;border-radius:6px;cursor:pointer;letter-spacing:0.08em;transition:all 0.2s;}
-  .refresh-btn:hover{background:var(--border);}
-  .refresh-btn.loading{opacity:0.5;pointer-events:none;}
-  .last-updated{font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--muted);margin-top:4px;}
-
-  /* ─── DROUGHT MONITOR SECTION ─── */
-  .drought-section{position:relative;z-index:1;max-width:1400px;margin:0 auto;padding:20px 24px;border-bottom:1px solid var(--border);}
-  .drought-section-title{font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;margin-bottom:4px;color:var(--text);}
-  .drought-section-sub{font-size:0.7rem;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:16px;}
-  .drought-maps{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-  @media(max-width:700px){.drought-maps{grid-template-columns:1fr;}}
-  .drought-map-card{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
-  .drought-map-label{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
-  .drought-map-label .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-  .drought-map-label .dot.current{background:var(--accent);}
-  .drought-map-label .dot.lastyear{background:var(--muted);}
-  .drought-map-label span{font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--text);}
-  .drought-map-label small{font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--muted);margin-left:auto;}
-  .drought-map-img-wrap{position:relative;background:var(--surface);height:260px;}
-  .drought-map-img-wrap iframe{width:100%;height:100%;border:none;display:block;}
-  .drought-map-img-wrap .img-loading{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted);pointer-events:none;}
-  .drought-legend{margin-top:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
-  .drought-legend-item{display:flex;align-items:center;gap:5px;font-size:0.62rem;color:var(--muted);font-family:'DM Mono',monospace;}
-  .drought-legend-swatch{width:14px;height:10px;border-radius:2px;border:1px solid rgba(255,255,255,0.1);}
-  .drought-note{margin-top:10px;font-size:0.63rem;color:var(--muted);font-family:'DM Mono',monospace;}
-
-  /* ─── LEGEND BAR ─── */
-  .legend{position:relative;z-index:1;max-width:1400px;margin:0 auto;padding:11px 24px;display:flex;gap:18px;flex-wrap:wrap;border-bottom:1px solid var(--border);align-items:center;}
-  .legend-item{display:flex;align-items:center;gap:6px;font-size:0.68rem;color:var(--muted);font-family:'DM Mono',monospace;}
-  .legend-swatch{width:26px;height:7px;border-radius:4px;}
-
-  /* ─── SUMMARY BAR ─── */
-  .summary-bar{position:relative;z-index:1;max-width:1400px;margin:0 auto;padding:10px 24px;display:flex;gap:24px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--border);font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted);}
-  .summary-stat span{color:var(--accent);font-weight:500;}
-
-  /* ─── CARDS GRID ─── */
-  main{position:relative;z-index:1;max-width:1400px;margin:0 auto;padding:20px 24px;display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;}
-  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:transform 0.2s,border-color 0.2s;animation:fadeUp 0.4s ease both;}
-  .card:hover{transform:translateY(-2px);border-color:rgba(79,195,247,0.4);}
-  @keyframes fadeUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
-
-  .card-header{padding:14px 16px 12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;}
-  .location-name{font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:700;}
-  .location-meta{margin-top:3px;font-size:0.68rem;color:var(--muted);font-family:'DM Mono',monospace;}
-  .condition-icon{font-size:1.6rem;line-height:1;text-align:right;}
-  .condition-label{font-size:0.6rem;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;text-align:right;}
-
-  /* ─── RAIN STATS ─── */
-  .rain-stats{padding:12px 16px;display:grid;grid-template-columns:repeat(3,1fr);gap:7px;border-bottom:1px solid var(--border);}
-  .stat{text-align:center;padding:9px 4px;background:var(--surface);border-radius:7px;border:1px solid var(--border);}
-  .stat-value{font-family:'DM Mono',monospace;font-size:1.1rem;font-weight:500;line-height:1;}
-  .stat-value.has-rain{color:var(--accent);}
-  .stat-value.no-rain{color:var(--muted);}
-  .stat-label{font-size:0.58rem;color:var(--muted);margin-top:4px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.05em;}
-
-  /* ─── PACE PROGRESS BAR ─── */
-  .pace-section{padding:12px 16px 10px;border-bottom:1px solid var(--border);}
-  .pace-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;}
-  .pace-title{font-size:0.62rem;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;}
-  .pace-status{font-family:'DM Mono',monospace;font-size:0.68rem;font-weight:500;padding:2px 7px;border-radius:3px;}
-  .pace-status.ahead{background:rgba(129,212,160,0.15);color:var(--ahead);}
-  .pace-status.behind{background:rgba(255,112,67,0.15);color:var(--behind);}
-  .pace-status.ontrack{background:rgba(79,195,247,0.15);color:var(--accent);}
-  .progress-track{position:relative;height:14px;background:var(--surface);border-radius:7px;overflow:hidden;border:1px solid var(--border);}
-  .bar-actual{position:absolute;top:0;left:0;height:100%;border-radius:7px;transition:width 1s cubic-bezier(0.4,0,0.2,1);z-index:2;}
-  .bar-actual.ahead{background:linear-gradient(90deg,#4caf7d,var(--ahead));}
-  .bar-actual.behind{background:linear-gradient(90deg,#c0392b,var(--behind));}
-  .bar-actual.ontrack{background:linear-gradient(90deg,#2980b9,var(--accent));}
-  .bar-pace{position:absolute;top:0;height:100%;width:3px;background:var(--pace);z-index:3;border-radius:2px;transition:left 1s cubic-bezier(0.4,0,0.2,1);}
-  .bar-pace::before{content:'';position:absolute;top:-6px;left:50%;transform:translateX(-50%);border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid #ffb74d;}
-  .progress-labels{display:flex;justify-content:space-between;margin-top:6px;font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);}
-  .label-pace{color:#ffb74d;}
-
-  /* ─── FORECAST BARS ─── */
-  .forecast-section{padding:10px 16px 14px;}
-  .forecast-title{font-size:0.62rem;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:9px;}
-  .forecast-bars{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;align-items:end;height:58px;}
-  .forecast-day{display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end;gap:3px;}
-  .bar-wrap{width:100%;height:38px;display:flex;align-items:flex-end;background:var(--surface);border-radius:3px;overflow:hidden;}
-  .bar-fill{width:100%;background:linear-gradient(to top,var(--accent),rgba(79,195,247,0.35));border-radius:3px;min-height:2px;}
-  .bar-fill.zero{background:var(--border);}
-  .day-label{font-size:0.54rem;color:var(--muted);font-family:'DM Mono',monospace;}
-  .day-amount{font-size:0.54rem;font-family:'DM Mono',monospace;color:var(--accent);}
-  .day-amount.zero{color:var(--border);}
-
-  /* ─── LOADING SKELETONS ─── */
-  .skeleton{background:linear-gradient(90deg,var(--card) 25%,var(--border) 50%,var(--card) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:6px;}
-  @keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
-  .loading-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;animation:fadeUp 0.4s ease both;}
-  .skel-title{height:20px;width:60%;margin-bottom:8px;}
-  .skel-sub{height:12px;width:40%;margin-bottom:18px;}
-  .skel-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
-  .skel-stat{height:56px;}
-  .skel-pace{height:50px;margin-bottom:14px;}
-  .skel-forecast{height:68px;}
-  .card-error{padding:24px;text-align:center;color:var(--muted);font-size:0.78rem;font-family:'DM Mono',monospace;}
-
-  footer{position:relative;z-index:1;text-align:center;padding:18px;font-size:0.63rem;color:var(--muted);font-family:'DM Mono',monospace;border-top:1px solid var(--border);margin-top:6px;line-height:1.8;}
-
-  @media(max-width:600px){main{padding:12px;gap:12px;}header{padding:18px 14px 14px;}.drought-section,.legend,.summary-bar{padding:12px 14px;}}
+:root{--bg:#0e1117;--surface:#161b25;--card:#1c2333;--border:#2a3348;--accent:#4fc3f7;--accent2:#81d4a0;--text:#e8edf5;--muted:#6b7a99;--ahead:#81d4a0;--behind:#ff7043;--pace:#ffb74d;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-weight:300;min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 50% at 20% 0%,rgba(79,195,247,.07) 0%,transparent 60%),radial-gradient(ellipse 60% 40% at 80% 100%,rgba(129,212,160,.05) 0%,transparent 60%);pointer-events:none;z-index:0;}
+header{position:relative;z-index:1;padding:28px 24px 18px;border-bottom:1px solid var(--border);display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px;max-width:1400px;margin:0 auto;}
+.header-left h1{font-family:'Playfair Display',serif;font-size:clamp(1.5rem,4vw,2.2rem);font-weight:700;letter-spacing:-.02em;line-height:1;background:linear-gradient(135deg,var(--text) 0%,var(--accent) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.header-left p{margin-top:5px;font-size:.72rem;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.05em;}
+.header-right{text-align:right;}
+.refresh-btn{background:var(--card);border:1px solid var(--border);color:var(--accent);font-family:'DM Mono',monospace;font-size:.75rem;padding:8px 16px;border-radius:6px;cursor:pointer;letter-spacing:.08em;transition:all .2s;}
+.refresh-btn:hover{background:var(--border);}
+.refresh-btn.loading{opacity:.5;pointer-events:none;}
+.last-updated{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--muted);margin-top:4px;}
+.drought-section{position:relative;z-index:1;max-width:1400px;margin:0 auto;padding:20px 24px;border-bottom:1px solid var(--border);}
+.drought-section-title{font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;margin-bottom:4px;}
+.drought-section-sub{font-size:.7rem;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:16px;}
+.drought-maps{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media(max-width:700px){.drought-maps{grid-template-columns:1fr;}}
+.drought-map-card{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.drought-map-label{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+.drought-map-label .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.drought-map-label .dot.current{background:var(--accent);}
+.drought-map-label .dot.lastyear{background:var(--muted);}
+.drought-map-label span{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--text);}
+.drought-map-label small{font-family:'DM Mono',monospace;font-size:.62rem;color:var(--muted);margin-left:auto;}
+.drought-map-img-wrap{position:relative;background:var(--surface);height:260px;}
+.drought-map-img-wrap iframe{width:100%;height:100%;border:none;display:block;}
+.drought-map-img-wrap .img-loading{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'DM Mono',monospace;font-size:.7rem;color:var(--muted);pointer-events:none;}
+.drought-legend{margin-top:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+.drought-legend-item{display:flex;align-items:center;gap:5px;font-size:.62rem;color:var(--muted);font-family:'DM Mono',monospace;}
+.drought-legend-swatch{width:14px;height:10px;border-radius:2px;border:1px solid rgba(255,255,255,.1);}
+.drought-note{margin-top:10px;font-size:.63rem;color:var(--muted);font-family:'DM Mono',monospace;}
+.legend{position:relative;z-index:1;max-width:1400px;margin:0 auto;padding:11px 24px;display:flex;gap:18px;flex-wrap:wrap;border-bottom:1px solid var(--border);align-items:center;}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:.68rem;color:var(--muted);font-family:'DM Mono',monospace;}
+.legend-swatch{width:26px;height:7px;border-radius:4px;}
+.summary-bar{position:relative;z-index:1;max-width:1400px;margin:0 auto;padding:10px 24px;display:flex;gap:24px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--border);font-family:'DM Mono',monospace;font-size:.7rem;color:var(--muted);}
+.summary-stat span{color:var(--accent);font-weight:500;}
+main{position:relative;z-index:1;max-width:1400px;margin:0 auto;padding:20px 24px;display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:transform .2s,border-color .2s;animation:fadeUp .4s ease both;}
+.card:hover{transform:translateY(-2px);border-color:rgba(79,195,247,.4);}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+.card-header{padding:14px 16px 12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;}
+.location-name{font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:700;}
+.location-meta{margin-top:3px;font-size:.68rem;color:var(--muted);font-family:'DM Mono',monospace;}
+.condition-icon{font-size:1.6rem;line-height:1;text-align:right;}
+.condition-label{font-size:.6rem;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;text-align:right;}
+.rain-stats{padding:12px 16px;display:grid;grid-template-columns:repeat(3,1fr);gap:7px;border-bottom:1px solid var(--border);}
+.stat{text-align:center;padding:9px 4px;background:var(--surface);border-radius:7px;border:1px solid var(--border);}
+.stat-value{font-family:'DM Mono',monospace;font-size:1.1rem;font-weight:500;line-height:1;}
+.stat-value.has-rain{color:var(--accent);}
+.stat-value.no-rain{color:var(--muted);}
+.stat-label{font-size:.58rem;color:var(--muted);margin-top:4px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.05em;}
+.pace-section{padding:12px 16px 10px;border-bottom:1px solid var(--border);}
+.pace-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;gap:8px;flex-wrap:wrap;}
+.pace-title{font-size:.62rem;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.08em;text-transform:uppercase;}
+.pace-status{font-family:'DM Mono',monospace;font-size:.66rem;font-weight:500;padding:2px 7px;border-radius:3px;white-space:nowrap;}
+.pace-status.ahead{background:rgba(129,212,160,.15);color:var(--ahead);}
+.pace-status.behind{background:rgba(255,112,67,.15);color:var(--behind);}
+.pace-status.ontrack{background:rgba(79,195,247,.15);color:var(--accent);}
+.pace-status.loading{background:rgba(107,122,153,.15);color:var(--muted);}
+.progress-track{position:relative;height:16px;background:var(--surface);border-radius:8px;border:1px solid var(--border);}
+.progress-inner{position:absolute;inset:0;border-radius:8px;overflow:hidden;}
+.bar-actual{position:absolute;top:0;left:0;height:100%;border-radius:8px;transition:width 1.2s cubic-bezier(.4,0,.2,1);}
+.bar-actual.ahead{background:linear-gradient(90deg,#3d9970,var(--ahead));}
+.bar-actual.behind{background:linear-gradient(90deg,#c0392b,var(--behind));}
+.bar-actual.ontrack{background:linear-gradient(90deg,#2471a3,var(--accent));}
+.bar-pace-marker{position:absolute;top:-4px;height:calc(100% + 8px);width:3px;background:var(--pace);z-index:5;border-radius:2px;transition:left 1.2s cubic-bezier(.4,0,.2,1);transform:translateX(-50%);}
+.bar-pace-marker::after{content:'▼';position:absolute;top:-12px;left:50%;transform:translateX(-50%);font-size:8px;color:var(--pace);line-height:1;}
+.progress-labels{display:flex;justify-content:space-between;margin-top:8px;font-family:'DM Mono',monospace;font-size:.58rem;color:var(--muted);}
+.label-pace{color:var(--pace);}
+.pace-loading{padding:8px 0;font-family:'DM Mono',monospace;font-size:.62rem;color:var(--muted);display:flex;align-items:center;gap:6px;}
+.pace-loading::before{content:'';width:8px;height:8px;border-radius:50%;border:2px solid var(--muted);border-top-color:var(--accent);animation:spin .8s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.forecast-section{padding:10px 16px 14px;}
+.forecast-title{font-size:.62rem;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.08em;text-transform:uppercase;margin-bottom:9px;}
+.forecast-bars{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;align-items:end;height:58px;}
+.forecast-day{display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end;gap:3px;}
+.bar-wrap{width:100%;height:38px;display:flex;align-items:flex-end;background:var(--surface);border-radius:3px;overflow:hidden;}
+.bar-fill{width:100%;background:linear-gradient(to top,var(--accent),rgba(79,195,247,.35));border-radius:3px;min-height:2px;}
+.bar-fill.zero{background:var(--border);}
+.day-label{font-size:.54rem;color:var(--muted);font-family:'DM Mono',monospace;}
+.day-amount{font-size:.54rem;font-family:'DM Mono',monospace;color:var(--accent);}
+.day-amount.zero{color:var(--border);}
+.skeleton{background:linear-gradient(90deg,var(--card) 25%,var(--border) 50%,var(--card) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:6px;}
+@keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+.loading-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;animation:fadeUp .4s ease both;}
+.skel-title{height:20px;width:60%;margin-bottom:8px;}
+.skel-sub{height:12px;width:40%;margin-bottom:18px;}
+.skel-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
+.skel-stat{height:56px;}
+.skel-pace{height:56px;margin-bottom:14px;}
+.skel-forecast{height:68px;}
+.card-error{padding:24px;text-align:center;color:var(--muted);font-size:.78rem;font-family:'DM Mono',monospace;}
+footer{position:relative;z-index:1;text-align:center;padding:18px;font-size:.63rem;color:var(--muted);font-family:'DM Mono',monospace;border-top:1px solid var(--border);margin-top:6px;line-height:1.8;}
+@media(max-width:600px){main{padding:12px;gap:12px;}header{padding:18px 14px 14px;}.drought-section,.legend,.summary-bar{padding:12px 14px;}}
 </style>
 </head>
 <body>
-
 <header>
   <div class="header-left">
-    <h1>☔ Field Rain Dashboard</h1>
-    <p>PROCUREMENT CENTER OF EXCELLENCE · GROWING SEASON MONITOR</p>
+    <h1>&#9730; Field Rain Dashboard</h1>
+    <p>PROCUREMENT CENTER OF EXCELLENCE &middot; GROWING SEASON MONITOR</p>
   </div>
   <div class="header-right">
-    <button class="refresh-btn" onclick="loadAll()">↻ REFRESH</button>
-    <div class="last-updated" id="lastUpdated">—</div>
+    <button class="refresh-btn" onclick="loadAll()">&#8635; REFRESH</button>
+    <div class="last-updated" id="lastUpdated">&mdash;</div>
   </div>
 </header>
-
-<!-- DROUGHT MONITOR -->
 <div class="drought-section">
-  <div class="drought-section-title">🗺 U.S. Drought Monitor</div>
+  <div class="drought-section-title">&#128506; U.S. Drought Monitor</div>
   <div class="drought-section-sub" id="droughtSubtitle">Loading drought map dates...</div>
   <div class="drought-maps">
     <div class="drought-map-card">
-      <div class="drought-map-label">
-        <div class="dot current"></div>
-        <span>Current Week</span>
-        <small id="currentDroughtDate">—</small>
-      </div>
+      <div class="drought-map-label"><div class="dot current"></div><span>Current Week</span><small id="currentDroughtDate">&mdash;</small></div>
       <div class="drought-map-img-wrap">
         <div class="img-loading" id="currentImgLoading">Loading map...</div>
-        <iframe id="droughtCurrent" src="" title="Current US Drought Monitor Map"
-          onload="document.getElementById('currentImgLoading').style.display='none';"
-          onerror="handleDroughtError('current')"></iframe>
+        <iframe id="droughtCurrent" src="" title="Current US Drought Monitor" onload="document.getElementById('currentImgLoading').style.display='none';"></iframe>
       </div>
     </div>
     <div class="drought-map-card">
-      <div class="drought-map-label">
-        <div class="dot lastyear"></div>
-        <span>One Year Ago</span>
-        <small id="lastYearDroughtDate">—</small>
-      </div>
+      <div class="drought-map-label"><div class="dot lastyear"></div><span>One Year Ago</span><small id="lastYearDroughtDate">&mdash;</small></div>
       <div class="drought-map-img-wrap">
         <div class="img-loading" id="lastYearImgLoading">Loading map...</div>
-        <iframe id="droughtLastYear" src="" title="Last Year US Drought Monitor Map"
-          onload="document.getElementById('lastYearImgLoading').style.display='none';"
-          onerror="handleDroughtError('lastyear')"></iframe>
+        <iframe id="droughtLastYear" src="" title="Last Year US Drought Monitor" onload="document.getElementById('lastYearImgLoading').style.display='none';"></iframe>
       </div>
     </div>
   </div>
   <div class="drought-legend">
-    <span style="font-size:0.62rem;color:var(--muted);font-family:'DM Mono',monospace;margin-right:4px;">INTENSITY:</span>
+    <span style="font-size:.62rem;color:var(--muted);font-family:'DM Mono',monospace;margin-right:4px;">INTENSITY:</span>
     <div class="drought-legend-item"><div class="drought-legend-swatch" style="background:#ffff00"></div>D0 Abnormally Dry</div>
     <div class="drought-legend-item"><div class="drought-legend-swatch" style="background:#fcd37f"></div>D1 Moderate</div>
     <div class="drought-legend-item"><div class="drought-legend-swatch" style="background:#ffaa00"></div>D2 Severe</div>
     <div class="drought-legend-item"><div class="drought-legend-swatch" style="background:#e60000"></div>D3 Extreme</div>
     <div class="drought-legend-item"><div class="drought-legend-swatch" style="background:#730000"></div>D4 Exceptional</div>
   </div>
-  <div class="drought-note">Source: US Drought Monitor (drought.gov) · Published weekly every Thursday · Maps show continental US</div>
+  <div class="drought-note">Source: US Drought Monitor (drought.gov) &middot; Published weekly every Thursday</div>
 </div>
-
-<!-- LEGEND -->
 <div class="legend">
-  <div class="legend-item"><div class="legend-swatch" style="background:linear-gradient(90deg,#4caf7d,#81d4a0)"></div>YTD actual (ahead)</div>
-  <div class="legend-item"><div class="legend-swatch" style="background:linear-gradient(90deg,#c0392b,#ff7043)"></div>YTD actual (behind)</div>
-  <div class="legend-item"><div class="legend-swatch" style="background:#ffb74d;height:7px;width:4px;border-radius:2px;"></div>Seasonal pace (30-yr normals)</div>
-  <div class="legend-item"><div class="legend-swatch" style="background:linear-gradient(90deg,var(--accent),rgba(79,195,247,0.4))"></div>7-day forecast</div>
-  <div style="margin-left:auto;font-size:0.65rem;color:var(--muted);font-family:'DM Mono',monospace;">Open-Meteo · inches</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:linear-gradient(90deg,#3d9970,#81d4a0)"></div>YTD actual (ahead of pace)</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:linear-gradient(90deg,#c0392b,#ff7043)"></div>YTD actual (behind pace)</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#ffb74d;height:7px;width:4px;border-radius:2px;"></div>&#9660; Seasonal pace marker</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:linear-gradient(90deg,var(--accent),rgba(79,195,247,.4))"></div>7-day forecast</div>
+  <div style="margin-left:auto;font-size:.65rem;color:var(--muted);font-family:'DM Mono',monospace;">Open-Meteo &middot; inches</div>
 </div>
-
-<div class="summary-bar" id="summaryBar">
-  <div class="summary-stat">Loading field data...</div>
-</div>
-
+<div class="summary-bar" id="summaryBar"><div class="summary-stat">Loading field data...</div></div>
 <main id="grid"></main>
-
 <footer>
-  Precipitation: Open-Meteo (open-meteo.com) · Climate normals: ERA5 30-year averages 1991–2020<br>
-  Drought maps: US Drought Monitor (drought.gov) · Published every Thursday · Pace = cumulative historical normal through today<br>
-  Bookmark this page · Refresh anytime for latest data · All precipitation in inches
+  Weather: Open-Meteo forecast API &middot; Normals: ERA5 archive 2015&ndash;2024 (10-yr monthly avg) &middot; Pace uses seasonal curve, not flat daily rate<br>
+  Drought maps: US Drought Monitor (drought.gov) &middot; All values in inches &middot; Bookmark this page for quick access
 </footer>
-
 <script>
-// ── LOCATIONS ──
-const LOCATIONS = [
-  {zip:'78539',name:'Edinburg',   state:'TX',lat:26.3017, lon:-98.1633 },
+const LOCATIONS=[
+  {zip:'78539',name:'Edinburg',   state:'TX',lat:26.3017, lon:-98.1633},
   {zip:'79403',name:'Lubbock',    state:'TX',lat:33.5779, lon:-101.8552},
   {zip:'79336',name:'Levelland',  state:'TX',lat:33.5873, lon:-102.3779},
   {zip:'79072',name:'Plainview',  state:'TX',lat:34.1845, lon:-101.7068},
   {zip:'79022',name:'Dalhart',    state:'TX',lat:36.0598, lon:-102.5138},
-  {zip:'67501',name:'Hutchinson', state:'KS',lat:38.0608, lon:-97.9298 },
+  {zip:'67501',name:'Hutchinson', state:'KS',lat:38.0608, lon:-97.9298},
   {zip:'80759',name:'Yuma',       state:'CO',lat:40.1233, lon:-102.7210},
   {zip:'69162',name:'Sidney',     state:'NE',lat:41.1427, lon:-102.9793},
-  {zip:'58102',name:'Fargo',      state:'ND',lat:46.8772, lon:-96.7898 },
-  {zip:'57401',name:'Aberdeen',   state:'SD',lat:45.4647, lon:-98.4865 },
+  {zip:'58102',name:'Fargo',      state:'ND',lat:46.8772, lon:-96.7898},
+  {zip:'57401',name:'Aberdeen',   state:'SD',lat:45.4647, lon:-98.4865},
 ];
+const mm2in=mm=>(mm/25.4).toFixed(2);
+const mm2inN=mm=>mm/25.4;
 
-// ── DROUGHT MONITOR ──
-function getLastThursday(fromDate) {
-  const d = new Date(fromDate);
-  const day = d.getDay(); // 0=Sun,4=Thu
-  const diff = (day + 3) % 7; // days since last Thursday
-  d.setDate(d.getDate() - diff);
-  return d;
-}
+function getLastThursday(d){const r=new Date(d);r.setDate(r.getDate()-((r.getDay()+3)%7));return r;}
+function fmtD(d){return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;}
+function fmtFriendly(d){return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}
 
-function formatDroughtDate(d) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth()+1).padStart(2,'0');
-  const dy = String(d.getDate()).padStart(2,'0');
-  return `${y}${m}${dy}`;
-}
-
-function friendlyDate(d) {
-  return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-}
-
-function initDroughtMaps() {
-  const today = new Date();
-  const currentThu = getLastThursday(today);
-  const lastYearThu = new Date(currentThu);
-  lastYearThu.setFullYear(lastYearThu.getFullYear() - 1);
-  // Move last year to nearest Thursday of same week
-  const lastYearAdj = getLastThursday(lastYearThu);
-
-  const currentStr = formatDroughtDate(currentThu);
-  const lastYearStr = formatDroughtDate(lastYearAdj);
-
-  // Use USDM's official embeddable viewer (avoids CORS issues with direct image loading)
-  // Format: https://droughtmonitor.unl.edu/Maps/MapArchive.aspx?date=YYYYMMDD
-  const viewerBase = 'https://droughtmonitor.unl.edu/Maps/MapArchive.aspx';
-  document.getElementById('droughtCurrent').src = `${viewerBase}?date=${currentStr}`;
-  document.getElementById('droughtLastYear').src = `${viewerBase}?date=${lastYearStr}`;
-
-  document.getElementById('currentDroughtDate').textContent = friendlyDate(currentThu);
-  document.getElementById('lastYearDroughtDate').textContent = friendlyDate(lastYearAdj);
-  document.getElementById('droughtSubtitle').textContent =
-    `Weekly maps from drought.gov — comparing ${friendlyDate(lastYearAdj)} vs ${friendlyDate(currentThu)}`;
-}
-
-function handleDroughtError(which) {
-  const loadingId = which === 'current' ? 'currentImgLoading' : 'lastYearImgLoading';
-  const frameId   = which === 'current' ? 'droughtCurrent'    : 'droughtLastYear';
-  document.getElementById(loadingId).textContent = '⚠ Map unavailable — visit drought.gov';
-  document.getElementById(frameId).style.display = 'none';
-}
-
-// ── HELPERS ──
-const mm2in  = mm => (mm/25.4).toFixed(2);
-const mm2inN = mm => mm/25.4;
-const DAYS_IN_MONTH = [31,28,31,30,31,30,31,31,30,31,30,31];
-function isLeap(y){return(y%4===0&&y%100!==0)||y%400===0;}
-
-function cumulativeNormal(norms, date) {
-  const dims = [...DAYS_IN_MONTH]; dims[1] = isLeap(date.getFullYear())?29:28;
-  let total=0;
-  for(let m=0;m<date.getMonth();m++) total+=norms[m];
-  total += (norms[date.getMonth()]/dims[date.getMonth()])*date.getDate();
-  return total;
-}
-function annualNormal(norms){return norms.reduce((a,b)=>a+b,0);}
-
-function parseMonthlyNormals(climate) {
-  if(!climate||!climate.monthly) return null;
-  const totals=Array(12).fill(0), counts=Array(12).fill(0);
-  (climate.monthly.time||[]).forEach((t,i)=>{
-    const m=parseInt(t.split('-')[1],10)-1;
-    const v=(climate.monthly.precipitation_sum||[])[i];
-    if(v!=null){totals[m]+=v;counts[m]++;}
-  });
-  return totals.map((t,m)=>counts[m]>0?t/counts[m]:0);
-}
-
-function weatherIcon(code) {
-  if(code===0) return{icon:'☀️',label:'Clear'};
-  if(code<=2)  return{icon:'🌤️',label:'Partly Cloudy'};
-  if(code===3) return{icon:'☁️',label:'Overcast'};
-  if(code<=49) return{icon:'🌫️',label:'Fog'};
-  if(code<=59) return{icon:'🌦️',label:'Drizzle'};
-  if(code<=69) return{icon:'🌧️',label:'Rain'};
-  if(code<=79) return{icon:'❄️',label:'Snow'};
-  if(code<=82) return{icon:'🌧️',label:'Showers'};
-  if(code<=84) return{icon:'🌨️',label:'Snow Showers'};
-  if(code<=99) return{icon:'⛈️',label:'Thunderstorm'};
-  return{icon:'🌡️',label:'Unknown'};
-}
-
-function getDayLabels() {
-  const days=['SUN','MON','TUE','WED','THU','FRI','SAT'];
+function initDroughtMaps(){
   const today=new Date();
-  return Array.from({length:7},(_,i)=>{
-    const d=new Date(today); d.setDate(today.getDate()+i);
-    return i===0?'TODAY':days[d.getDay()];
-  });
+  const cur=getLastThursday(today);
+  const ly=new Date(cur); ly.setFullYear(ly.getFullYear()-1);
+  const lyAdj=getLastThursday(ly);
+  const base='https://droughtmonitor.unl.edu/Maps/MapArchive.aspx';
+  document.getElementById('droughtCurrent').src=`${base}?date=${fmtD(cur)}`;
+  document.getElementById('droughtLastYear').src=`${base}?date=${fmtD(lyAdj)}`;
+  document.getElementById('currentDroughtDate').textContent=fmtFriendly(cur);
+  document.getElementById('lastYearDroughtDate').textContent=fmtFriendly(lyAdj);
+  document.getElementById('droughtSubtitle').textContent=`Weekly maps from drought.gov — ${fmtFriendly(lyAdj)} vs ${fmtFriendly(cur)}`;
 }
 
-// ── FETCH ──
-async function fetchAll(loc) {
-  const now=new Date();
-  const yearStart=`${now.getFullYear()}-01-01`;
-  const fEnd=new Date(now); fEnd.setDate(now.getDate()+7);
-  const fEndStr=fEnd.toISOString().split('T')[0];
-
-  const weatherUrl=`https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}`+
-    `&daily=precipitation_sum,weathercode&timezone=auto&start_date=${yearStart}&end_date=${fEndStr}`;
-  const climateUrl=`https://climate-api.open-meteo.com/v1/climate?latitude=${loc.lat}&longitude=${loc.lon}`+
-    `&models=ERA5&monthly=precipitation_sum&start_date=1991-01-01&end_date=2020-12-31`;
-
-  const [wRes,cRes]=await Promise.all([fetch(weatherUrl),fetch(climateUrl)]);
-  if(!wRes.ok) throw new Error('Weather API error');
-  const weather=await wRes.json();
-  const climate=cRes.ok?await cRes.json():null;
-  return{weather,climate};
+function weatherIcon(c){
+  if(c===0)return{icon:'&#9728;',label:'Clear'};
+  if(c<=2)return{icon:'&#127780;',label:'Partly Cloudy'};
+  if(c===3)return{icon:'&#9729;',label:'Overcast'};
+  if(c<=49)return{icon:'&#127787;',label:'Fog'};
+  if(c<=59)return{icon:'&#127782;',label:'Drizzle'};
+  if(c<=69)return{icon:'&#127783;',label:'Rain'};
+  if(c<=79)return{icon:'&#10052;',label:'Snow'};
+  if(c<=82)return{icon:'&#127783;',label:'Showers'};
+  if(c<=99)return{icon:'&#9928;',label:'Thunderstorm'};
+  return{icon:'&#127777;',label:'Unknown'};
+}
+function getDayLabels(){
+  const days=['SUN','MON','TUE','WED','THU','FRI','SAT'],t=new Date();
+  return Array.from({length:7},(_,i)=>{const d=new Date(t);d.setDate(t.getDate()+i);return i===0?'TODAY':days[d.getDay()];});
 }
 
-// ── CALC ──
-function calcData(weather,climate) {
-  const now=new Date();
-  const todayStr=now.toISOString().split('T')[0];
-  const dates=weather.daily.time||[];
-  const precip=weather.daily.precipitation_sum||[];
-  const codes=weather.daily.weathercode||[];
-  const todayIdx=dates.findIndex(d=>d===todayStr);
+async function fetchWeather(loc){
+  const now=new Date(),ys=`${now.getFullYear()}-01-01`;
+  const fe=new Date(now);fe.setDate(now.getDate()+7);
+  const url=`https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}&daily=precipitation_sum,weathercode&timezone=auto&start_date=${ys}&end_date=${fe.toISOString().split('T')[0]}`;
+  const r=await fetch(url);if(!r.ok)throw new Error('weather');
+  return r.json();
+}
 
-  let ytdMM=0;
-  for(let i=0;i<=todayIdx;i++) ytdMM+=precip[i]||0;
+async function fetchNormals(loc){
+  const endY=new Date().getFullYear()-1,startY=endY-9;
+  const url=`https://archive-api.open-meteo.com/v1/archive?latitude=${loc.lat}&longitude=${loc.lon}&daily=precipitation_sum&timezone=auto&start_date=${startY}-01-01&end_date=${endY}-12-31`;
+  const r=await fetch(url);if(!r.ok)throw new Error('archive');
+  return r.json();
+}
 
-  let sum24=0,sum48=0,sum7=0;
+function computeNormals(d){
+  const dates=d.daily?.time||[],precip=d.daily?.precipitation_sum||[];
+  const byYM={};
   for(let i=0;i<dates.length;i++){
-    const diff=Math.round((new Date(todayStr+'T12:00:00')-new Date(dates[i]+'T12:00:00'))/86400000);
-    const v=precip[i]||0;
-    if(diff===0) sum24+=v;
-    if(diff>=0&&diff<=1) sum48+=v;
-    if(diff>=0&&diff<=6) sum7+=v;
+    const[y,m]=dates[i].split('-'),k=`${y}-${m}`;
+    byYM[k]=(byYM[k]||0)+(precip[i]||0);
   }
-
-  const forecast=Array.from({length:7},(_,i)=>({
-    precip:precip[todayIdx+i]||0,
-    code:codes[todayIdx+i]||0
-  }));
-
-  const monthlyNorms=parseMonthlyNormals(climate);
-  const paceNowMM=monthlyNorms?cumulativeNormal(monthlyNorms,now):null;
-  const annualNormMM=monthlyNorms?annualNormal(monthlyNorms):null;
-
-  return{ytdMM,sum24,sum48,sum7,forecast,currentCode:codes[todayIdx]||0,paceNowMM,annualNormMM};
+  const bm=Array.from({length:12},()=>[]);
+  for(const[k,v]of Object.entries(byYM)){bm[parseInt(k.split('-')[1],10)-1].push(v);}
+  return bm.map(a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0);
 }
 
-// ── RENDER PACE BAR ──
-function renderPaceBar(ytdMM,paceNowMM,annualNormMM) {
-  if(!annualNormMM||annualNormMM===0) return `
-    <div class="pace-section">
-      <div class="pace-title">YTD vs Seasonal Pace</div>
-      <div style="font-size:0.65rem;color:var(--muted);font-family:'DM Mono',monospace;padding:6px 0;">Climate normals unavailable</div>
-    </div>`;
-
-  const ytdIn=mm2inN(ytdMM), paceIn=mm2inN(paceNowMM), annIn=mm2inN(annualNormMM);
-  const actualPct=Math.min((ytdIn/annIn)*100,100);
-  const pacePct=Math.min((paceIn/annIn)*100,100);
-  const diff=ytdIn-paceIn;
-  const sc=Math.abs(diff)<0.05?'ontrack':(diff>=0?'ahead':'behind');
-  const sl=Math.abs(diff)<0.05?'ON PACE':(diff>=0?`+${diff.toFixed(2)}" AHEAD`:`${diff.toFixed(2)}" BEHIND`);
-
-  return `
-    <div class="pace-section">
-      <div class="pace-header">
-        <div class="pace-title">YTD vs. 30-Yr Seasonal Pace</div>
-        <div class="pace-status ${sc}">${sl}</div>
-      </div>
-      <div class="progress-track">
-        <div class="bar-actual ${sc}" style="width:${actualPct.toFixed(1)}%"></div>
-        <div class="bar-pace" style="left:calc(${pacePct.toFixed(1)}% - 1.5px)"></div>
-      </div>
-      <div class="progress-labels">
-        <span>Actual ${ytdIn.toFixed(2)}"</span>
-        <span class="label-pace">▲ Pace ${paceIn.toFixed(2)}"</span>
-        <span>Avg ${annIn.toFixed(1)}" /yr</span>
-      </div>
-    </div>`;
+function cumPace(norms,date){
+  const dims=[31,28,31,30,31,30,31,31,30,31,30,31];
+  const y=date.getFullYear();
+  dims[1]=((y%4===0&&y%100!==0)||y%400===0)?29:28;
+  let t=0;const mo=date.getMonth();
+  for(let i=0;i<mo;i++)t+=norms[i];
+  t+=(norms[mo]/dims[mo])*date.getDate();
+  return t;
 }
 
-// ── RENDER CARD ──
-function renderCard(loc,data,idx) {
-  const {ytdMM,sum24,sum48,sum7,forecast,currentCode,paceNowMM,annualNormMM}=data;
-  const {icon,label}=weatherIcon(currentCode);
-  const dayLabels=getDayLabels();
-  const maxF=Math.max(...forecast.map(f=>f.precip),0.1);
-  const fTotal=mm2in(forecast.reduce((a,f)=>a+f.precip,0));
+function calcToday(wd){
+  const now=new Date(),ts=now.toISOString().split('T')[0];
+  const dates=wd.daily?.time||[],precip=wd.daily?.precipitation_sum||[],codes=wd.daily?.weathercode||[];
+  const ti=dates.findIndex(d=>d===ts);
+  if(ti===-1)return null;
+  let ytd=0;for(let i=0;i<=ti;i++)ytd+=(precip[i]||0);
+  let s24=0,s48=0,s7=0;
+  for(let i=0;i<dates.length;i++){
+    const diff=Math.round((new Date(ts+'T12:00:00')-new Date(dates[i]+'T12:00:00'))/86400000),v=precip[i]||0;
+    if(diff===0)s24+=v;
+    if(diff>=0&&diff<=1)s48+=v;
+    if(diff>=0&&diff<=6)s7+=v;
+  }
+  return{ytdMM:ytd,sum24:s24,sum48:s48,sum7:s7,forecast:Array.from({length:7},(_,i)=>({precip:precip[ti+i]||0,code:codes[ti+i]||0})),currentCode:codes[ti]||0};
+}
 
-  return `
-  <div class="card" style="animation-delay:${idx*0.05}s">
+function renderPaceBar(ytdMM,norms){
+  if(!norms)return '<div class="pace-section"><div class="pace-header"><div class="pace-title">YTD vs. Seasonal Pace</div><div class="pace-status loading">Loading...</div></div><div class="pace-loading">Fetching 10-year historical normals</div></div>';
+  const annMM=norms.reduce((a,b)=>a+b,0);if(!annMM)return'';
+  const pMM=cumPace(norms,new Date()),ytdIn=mm2inN(ytdMM),pIn=mm2inN(pMM),annIn=mm2inN(annMM);
+  const aPct=Math.min((ytdIn/annIn)*100,100),pPct=Math.min((pIn/annIn)*100,100);
+  const diff=ytdIn-pIn,sc=Math.abs(diff)<0.1?'ontrack':diff>0?'ahead':'behind';
+  const sl=Math.abs(diff)<0.1?'ON PACE':diff>0?`+${diff.toFixed(2)}" AHEAD`:`${diff.toFixed(2)}" BEHIND`;
+  return `<div class="pace-section">
+    <div class="pace-header"><div class="pace-title">YTD vs. 10-Yr Seasonal Pace</div><div class="pace-status ${sc}">${sl}</div></div>
+    <div class="progress-track">
+      <div class="progress-inner"><div class="bar-actual ${sc}" style="width:${aPct.toFixed(1)}%"></div></div>
+      <div class="bar-pace-marker" style="left:${pPct.toFixed(1)}%"></div>
+    </div>
+    <div class="progress-labels"><span>Actual ${ytdIn.toFixed(2)}"</span><span class="label-pace">&#9660; Pace ${pIn.toFixed(2)}"</span><span>Avg ${annIn.toFixed(1)}" /yr</span></div>
+  </div>`;
+}
+
+function renderCard(loc,data,norms,idx){
+  const{ytdMM,sum24,sum48,sum7,forecast,currentCode}=data;
+  const{icon,label}=weatherIcon(currentCode),dl=getDayLabels();
+  const mxF=Math.max(...forecast.map(f=>f.precip),0.1),fT=mm2in(forecast.reduce((a,f)=>a+f.precip,0));
+  return `<div class="card" style="animation-delay:${idx*.05}s">
     <div class="card-header">
-      <div>
-        <div class="location-name">${loc.name}, ${loc.state}</div>
-        <div class="location-meta">ZIP ${loc.zip}</div>
-        <div class="location-meta" style="color:var(--accent2);margin-top:2px">▸ ${fTotal}" next 7d forecast</div>
-      </div>
+      <div><div class="location-name">${loc.name}, ${loc.state}</div><div class="location-meta">ZIP ${loc.zip}</div><div class="location-meta" style="color:var(--accent2);margin-top:2px">&#9658; ${fT}" next 7d forecast</div></div>
       <div><div class="condition-icon">${icon}</div><div class="condition-label">${label}</div></div>
     </div>
     <div class="rain-stats">
@@ -421,80 +289,45 @@ function renderCard(loc,data,idx) {
       <div class="stat"><div class="stat-value ${sum48>0?'has-rain':'no-rain'}">${mm2in(sum48)}"</div><div class="stat-label">48 hrs</div></div>
       <div class="stat"><div class="stat-value ${sum7>0?'has-rain':'no-rain'}">${mm2in(sum7)}"</div><div class="stat-label">7 days</div></div>
     </div>
-    ${renderPaceBar(ytdMM,paceNowMM,annualNormMM)}
+    ${renderPaceBar(ytdMM,norms)}
     <div class="forecast-section">
       <div class="forecast-title">7-Day Forecast Precipitation</div>
-      <div class="forecast-bars">
-        ${forecast.map((f,i)=>{
-          const h=maxF>0?Math.max((f.precip/maxF)*100,f.precip<0.1?3:8):3;
-          return `<div class="forecast-day">
-            <div class="day-amount ${f.precip<0.1?'zero':''}">${mm2in(f.precip)}"</div>
-            <div class="bar-wrap"><div class="bar-fill ${f.precip<0.1?'zero':''}" style="height:${h}%"></div></div>
-            <div class="day-label">${dayLabels[i]}</div>
-          </div>`;
-        }).join('')}
-      </div>
+      <div class="forecast-bars">${forecast.map((f,i)=>{const h=Math.max((f.precip/mxF)*100,f.precip<0.1?3:8);return `<div class="forecast-day"><div class="day-amount ${f.precip<0.1?'zero':''}">${mm2in(f.precip)}"</div><div class="bar-wrap"><div class="bar-fill ${f.precip<0.1?'zero':''}" style="height:${h}%"></div></div><div class="day-label">${dl[i]}</div></div>`;}).join('')}</div>
     </div>
   </div>`;
 }
 
-function renderLoading() {
-  return LOCATIONS.map((_,i)=>`
-    <div class="loading-card" style="animation-delay:${i*0.05}s">
-      <div class="skeleton skel-title"></div><div class="skeleton skel-sub"></div>
-      <div class="skel-stats"><div class="skeleton skel-stat"></div><div class="skeleton skel-stat"></div><div class="skeleton skel-stat"></div></div>
-      <div class="skeleton skel-pace"></div><div class="skeleton skel-forecast"></div>
-    </div>`).join('');
-}
+function renderLoading(){return LOCATIONS.map((_,i)=>`<div class="loading-card" style="animation-delay:${i*.05}s"><div class="skeleton skel-title"></div><div class="skeleton skel-sub"></div><div class="skel-stats"><div class="skeleton skel-stat"></div><div class="skeleton skel-stat"></div><div class="skeleton skel-stat"></div></div><div class="skeleton skel-pace"></div><div class="skeleton skel-forecast"></div></div>`).join('');}
+function renderError(loc,idx){return `<div class="card" style="animation-delay:${idx*.05}s"><div class="card-header"><div><div class="location-name">${loc.name}, ${loc.state}</div><div class="location-meta">ZIP ${loc.zip}</div></div></div><div class="card-error">&#9888; Unable to load weather data<br>Check connection and retry</div></div>`;}
 
-function renderError(loc,idx) {
-  return `<div class="card" style="animation-delay:${idx*0.05}s">
-    <div class="card-header"><div><div class="location-name">${loc.name}, ${loc.state}</div><div class="location-meta">ZIP ${loc.zip}</div></div></div>
-    <div class="card-error">⚠ Unable to load weather data<br>Check connection and retry</div>
-  </div>`;
-}
-
-// ── MAIN LOAD ──
-async function loadAll() {
-  const grid=document.getElementById('grid');
-  const btn=document.querySelector('.refresh-btn');
-  const summaryBar=document.getElementById('summaryBar');
-
-  btn.classList.add('loading'); btn.textContent='↻ LOADING...';
+async function loadAll(){
+  const grid=document.getElementById('grid'),btn=document.querySelector('.refresh-btn'),sb=document.getElementById('summaryBar');
+  btn.classList.add('loading');btn.textContent='&#8635; LOADING...';
   grid.innerHTML=renderLoading();
-  summaryBar.innerHTML='<div class="summary-stat">Fetching field data + 30-year climate normals...</div>';
-
-  const results=await Promise.allSettled(LOCATIONS.map(loc=>fetchAll(loc)));
-
-  let html='', withRain=0, ahead=0, behind=0;
-  results.forEach((res,i)=>{
-    if(res.status==='fulfilled'){
-      const data=calcData(res.value.weather,res.value.climate);
-      if(data.sum7>0) withRain++;
-      if(data.paceNowMM!=null){
-        if(data.ytdMM>data.paceNowMM+1) ahead++;
-        else if(data.ytdMM<data.paceNowMM-1) behind++;
-      }
-      html+=renderCard(LOCATIONS[i],data,i);
-    } else {
-      html+=renderError(LOCATIONS[i],i);
-    }
-  });
-
-  grid.innerHTML=html;
+  sb.innerHTML='<div class="summary-stat">Fetching weather data...</div>';
+  const wResults=await Promise.allSettled(LOCATIONS.map(loc=>fetchWeather(loc)));
+  const todayArr=wResults.map(r=>r.status==='fulfilled'?calcToday(r.value):null);
+  grid.innerHTML=todayArr.map((d,i)=>d?renderCard(LOCATIONS[i],d,null,i):renderError(LOCATIONS[i],i)).join('');
+  let withRain=0;todayArr.forEach(d=>{if(d&&d.sum7>0)withRain++;});
+  sb.innerHTML=`<div class="summary-stat">Fields: <span>${LOCATIONS.length}</span></div><div class="summary-stat">Rain this week: <span>${withRain}/${LOCATIONS.length}</span></div><div class="summary-stat" style="color:var(--muted)">Loading 10-yr climate normals...</div>`;
   const now=new Date();
-  document.getElementById('lastUpdated').textContent=
-    `Updated ${now.toLocaleDateString('en-US',{month:'short',day:'numeric'})} ${now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})}`;
-  summaryBar.innerHTML=`
-    <div class="summary-stat">Fields: <span>${LOCATIONS.length}</span></div>
-    <div class="summary-stat">Rain this week: <span>${withRain}/${LOCATIONS.length}</span></div>
-    <div class="summary-stat">Ahead of pace: <span style="color:var(--ahead)">${ahead}</span></div>
-    <div class="summary-stat">Behind pace: <span style="color:var(--behind)">${behind}</span></div>`;
-
-  btn.classList.remove('loading'); btn.textContent='↻ REFRESH';
+  document.getElementById('lastUpdated').textContent=`Updated ${now.toLocaleDateString('en-US',{month:'short',day:'numeric'})} ${now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})}`;
+  btn.classList.remove('loading');btn.textContent='&#8635; REFRESH';
+  let ahead=0,behind=0;
+  for(let i=0;i<LOCATIONS.length;i++){
+    if(i>0)await new Promise(r=>setTimeout(r,350));
+    try{
+      const archData=await fetchNormals(LOCATIONS[i]);
+      const norms=computeNormals(archData),data=todayArr[i];
+      if(!data)continue;
+      const cards=grid.querySelectorAll('.card');
+      if(cards[i]){const ps=cards[i].querySelector('.pace-section');if(ps){const tmp=document.createElement('div');tmp.innerHTML=renderPaceBar(data.ytdMM,norms);ps.replaceWith(tmp.firstElementChild);}}
+      const pNow=cumPace(norms,new Date());
+      if(data.ytdMM>pNow+2.54)ahead++;else if(data.ytdMM<pNow-2.54)behind++;
+    }catch(e){console.warn('Normals failed:',LOCATIONS[i].name,e.message);}
+  }
+  sb.innerHTML=`<div class="summary-stat">Fields: <span>${LOCATIONS.length}</span></div><div class="summary-stat">Rain this week: <span>${withRain}/${LOCATIONS.length}</span></div><div class="summary-stat">Ahead of pace: <span style="color:var(--ahead)">${ahead}</span></div><div class="summary-stat">Behind pace: <span style="color:var(--behind)">${behind}</span></div>`;
 }
-
-// Init on load
 initDroughtMaps();
 loadAll();
 </script>
